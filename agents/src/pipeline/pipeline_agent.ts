@@ -246,6 +246,7 @@ export class VoicePipelineAgent extends (EventEmitter as new () => TypedEmitter<
   #agentPublication?: LocalTrackPublication;
   #lastFinalTranscriptTime?: number;
   #lastSpeechTime?: number;
+  #writer: WritableStreamDefaultWriter<SpeechHandle | typeof VoicePipelineAgent.FLUSH_SENTINEL>;
 
   constructor(
     /** Voice Activity Detection instance. */
@@ -280,6 +281,8 @@ export class VoicePipelineAgent extends (EventEmitter as new () => TypedEmitter<
       this.#validateReplyIfPossible.bind(this),
       this.#opts.minEndpointingDelay,
     );
+
+    this.#writer = this.#speechQueue.writable.getWriter();
   }
 
   get fncCtx(): FunctionContext | undefined {
@@ -849,9 +852,8 @@ export class VoicePipelineAgent extends (EventEmitter as new () => TypedEmitter<
   }
 
   #addSpeechForPlayout(handle: SpeechHandle) {
-    const writer = this.#speechQueue.writable.getWriter();
-    writer.write(handle);
-    writer.write(VoicePipelineAgent.FLUSH_SENTINEL);
+    this.#writer.write(handle);
+    this.#writer.write(VoicePipelineAgent.FLUSH_SENTINEL);
     this.#speechQueueOpen.resolve();
   }
 
